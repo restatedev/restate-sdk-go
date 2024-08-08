@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 
 	_go "github.com/restatedev/sdk-go/generated/proto/go"
-	protocol "github.com/restatedev/sdk-go/generated/proto/protocol"
+	"github.com/restatedev/sdk-go/generated/proto/protocol"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -104,6 +104,8 @@ func MessageType(message Message) Type {
 	switch message.(type) {
 	case *StartMessage:
 		return StartMessageType
+	case *CompletionMessage:
+		return CompletionMessageType
 	case *SuspensionMessage:
 		return SuspensionMessageType
 	case *InputEntryMessage:
@@ -168,25 +170,32 @@ func (r *Reader) Next() <-chan ReaderMessage {
 	return r.ch
 }
 
-// Protocol implements the wire protocol to abstract receiving
+type Protocol interface {
+	Read() (Message, Type, error)
+	Write(typ Type, message Message) error
+}
+
+// Protocol implements the wire protoc to abstract receiving
 // and sending messages
 // Note that Protocol is not concurrent safe and it's up to the user
 // to make sure it's used correctly
-type Protocol struct {
+type protoc struct {
 	stream io.ReadWriter
 }
 
-func NewProtocol(stream io.ReadWriter) *Protocol {
-	return &Protocol{stream}
+var _ Protocol = (*protoc)(nil)
+
+func NewProtocol(stream io.ReadWriter) *protoc {
+	return &protoc{stream}
 }
 
 // ReadHeader from stream
-func (s *Protocol) header() (header Header, err error) {
+func (s *protoc) header() (header Header, err error) {
 	err = binary.Read(s.stream, binary.BigEndian, &header)
 	return
 }
 
-func (s *Protocol) Read() (Message, Type, error) {
+func (s *protoc) Read() (Message, Type, error) {
 	header, err := s.header()
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to read message header: %w", err)
@@ -211,7 +220,7 @@ func (s *Protocol) Read() (Message, Type, error) {
 	return msg, header.TypeCode, nil
 }
 
-func (s *Protocol) Write(typ Type, message Message) error {
+func (s *protoc) Write(typ Type, message Message) error {
 	var flag Flag
 
 	if message, ok := message.(CompleteableMessage); ok && message.Completed() {
