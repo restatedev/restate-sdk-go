@@ -267,7 +267,7 @@ type Machine struct {
 	suspend       func(error)
 
 	handler  restate.Handler
-	protocol *wire.Protocol
+	protocol wire.Protocol
 
 	// state
 	key     string
@@ -433,9 +433,16 @@ The journal entry at position %d was:
 			}
 
 			return
+		case *clientGoneAway:
+			m.log.LogAttrs(m.ctx, slog.LevelWarn, "Cancelling invocation as the incoming request context was cancelled", log.Error(typ.err))
+			return
 		case *wire.SuspensionPanic:
 			if m.ctx.Err() != nil {
-				m.log.WarnContext(m.ctx, "Cancelling invocation as the incoming request was cancelled")
+				// special case; awaiting a pre-existing sleep or awakeable doesn't create a new entry
+				// so doesn't hit the clientGoneAway code path, but instead it just looks like a suspension.
+				// so here we should differentiate between the causes; if the main context is cancelled,
+				// this isn't a suspension.
+				m.log.LogAttrs(m.ctx, slog.LevelWarn, "Cancelling invocation as the incoming request context was cancelled", log.Error(typ.Err))
 				return
 			}
 			if stderrors.Is(typ.Err, io.EOF) {
@@ -637,6 +644,12 @@ func replayOrNew[M wire.Message, O any](
 	}
 	defer m.entryMutex.Unlock()
 
+	if m.ctx.Err() != nil {
+		// the main context being cancelled means the client is no longer interested in our response
+		// and so creating new entries is pointless and we should shut down the state machine.
+		panic(m.newClientGoneAway(context.Cause(m.ctx)))
+	}
+
 	if m.failure != nil {
 		// maybe the user will try to catch our panics, but we will just keep producing them
 		panic(m.failure)
@@ -673,6 +686,16 @@ type concurrentContextUse struct {
 
 func (m *Machine) newConcurrentContextUse(entry wire.Type) *concurrentContextUse {
 	c := &concurrentContextUse{entry}
+	m.failure = c
+	return c
+}
+
+type clientGoneAway struct {
+	err error
+}
+
+func (m *Machine) newClientGoneAway(err error) *clientGoneAway {
+	c := &clientGoneAway{err}
 	m.failure = c
 	return c
 }

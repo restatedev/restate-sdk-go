@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/restatedev/sdk-go/internal/log"
@@ -30,6 +31,11 @@ func (m *Machine) ackable(entryIndex uint32) wire.AckableMessage {
 }
 
 func (m *Machine) Write(message wire.Message) {
+	if m.ctx.Err() != nil {
+		// the main context being cancelled means the client is no longer interested in our response
+		// and so creating new entries is pointless and we should shut down the state machine.
+		panic(m.newClientGoneAway(context.Cause(m.ctx)))
+	}
 	if message, ok := message.(wire.CompleteableMessage); ok && !message.Completed() {
 		m.pendingMutex.Lock()
 		m.pendingCompletions[m.entryIndex] = message
