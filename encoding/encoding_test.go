@@ -1,9 +1,10 @@
 package encoding
 
 import (
+	"encoding/base64"
 	"testing"
 
-	"github.com/restatedev/sdk-go/generated/proto/protocol"
+	protocol "github.com/restatedev/sdk-go/generated/dev/restate/service"
 )
 
 func willPanic(t *testing.T, do func()) {
@@ -73,9 +74,10 @@ func TestProto(t *testing.T) {
 
 func TestVoid(t *testing.T) {
 	codecs := map[string]Codec{
-		"json":   JSONCodec,
-		"proto":  ProtoCodec,
-		"binary": BinaryCodec,
+		"json":      JSONCodec,
+		"proto":     ProtoCodec,
+		"protojson": ProtoJSONCodec,
+		"binary":    BinaryCodec,
 	}
 	for name, codec := range codecs {
 		t.Run(name, func(t *testing.T) {
@@ -96,5 +98,54 @@ func TestVoid(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func BenchmarkProto(b *testing.B) {
+	// protoscope -s <(echo '1: {4 5 6 7}') | base64
+	data, err := base64.StdEncoding.DecodeString("CgQEBQYH")
+	if err != nil {
+		b.Fatal(err)
+	}
+	benchmarkProto(b, ProtoCodec, data)
+}
+
+func BenchmarkProtoJSON(b *testing.B) {
+	benchmarkProto(b, ProtoJSONCodec, []byte(`{"entryIndexes": [1,2,3]}`))
+}
+
+func benchmarkProto(b *testing.B, codec Codec, data []byte) {
+	b.Run("non-nil proto.Message", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			a := new(protocol.SuspensionMessage)
+			if err := codec.Unmarshal(data, a); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("non-nil pointer to non-nil proto.Message", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			a := new(protocol.SuspensionMessage)
+			if err := codec.Unmarshal(data, &a); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("non-nil pointer to nil proto.Message", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			var a *protocol.SuspensionMessage
+			if err := codec.Unmarshal(data, &a); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkAllocateProtoMessage(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		var a *protocol.SuspensionMessage
+		allocateProtoMessage("", &a)
 	}
 }

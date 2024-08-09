@@ -11,8 +11,7 @@ import (
 	"strings"
 
 	restate "github.com/restatedev/sdk-go"
-	"github.com/restatedev/sdk-go/generated/proto/discovery"
-	"github.com/restatedev/sdk-go/generated/proto/protocol"
+	protocol "github.com/restatedev/sdk-go/generated/dev/restate/service"
 	"github.com/restatedev/sdk-go/internal"
 	"github.com/restatedev/sdk-go/internal/identity"
 	"github.com/restatedev/sdk-go/internal/log"
@@ -22,8 +21,8 @@ import (
 
 const minServiceProtocolVersion protocol.ServiceProtocolVersion = protocol.ServiceProtocolVersion_V1
 const maxServiceProtocolVersion protocol.ServiceProtocolVersion = protocol.ServiceProtocolVersion_V1
-const minServiceDiscoveryProtocolVersion discovery.ServiceDiscoveryProtocolVersion = discovery.ServiceDiscoveryProtocolVersion_V1
-const maxServiceDiscoveryProtocolVersion discovery.ServiceDiscoveryProtocolVersion = discovery.ServiceDiscoveryProtocolVersion_V1
+const minServiceDiscoveryProtocolVersion protocol.ServiceDiscoveryProtocolVersion = protocol.ServiceDiscoveryProtocolVersion_V1
+const maxServiceDiscoveryProtocolVersion protocol.ServiceDiscoveryProtocolVersion = protocol.ServiceDiscoveryProtocolVersion_V1
 
 var xRestateServer = `restate-sdk-go/unknown`
 
@@ -150,7 +149,7 @@ func (r *Restate) discoverHandler(writer http.ResponseWriter, req *http.Request)
 
 	serviceDiscoveryProtocolVersion := selectSupportedServiceDiscoveryProtocolVersion(acceptVersionsString)
 
-	if serviceDiscoveryProtocolVersion == discovery.ServiceDiscoveryProtocolVersion_SERVICE_DISCOVERY_PROTOCOL_VERSION_UNSPECIFIED {
+	if serviceDiscoveryProtocolVersion == protocol.ServiceDiscoveryProtocolVersion_SERVICE_DISCOVERY_PROTOCOL_VERSION_UNSPECIFIED {
 		writer.WriteHeader(http.StatusUnsupportedMediaType)
 		writer.Write([]byte(fmt.Sprintf("Unsupported service discovery protocol version '%s'", acceptVersionsString)))
 		return
@@ -179,8 +178,8 @@ func (r *Restate) discoverHandler(writer http.ResponseWriter, req *http.Request)
 	}
 }
 
-func selectSupportedServiceDiscoveryProtocolVersion(accept string) discovery.ServiceDiscoveryProtocolVersion {
-	maxVersion := discovery.ServiceDiscoveryProtocolVersion_SERVICE_DISCOVERY_PROTOCOL_VERSION_UNSPECIFIED
+func selectSupportedServiceDiscoveryProtocolVersion(accept string) protocol.ServiceDiscoveryProtocolVersion {
+	maxVersion := protocol.ServiceDiscoveryProtocolVersion_SERVICE_DISCOVERY_PROTOCOL_VERSION_UNSPECIFIED
 
 	for _, versionString := range strings.Split(accept, ",") {
 		version := parseServiceDiscoveryProtocolVersion(versionString)
@@ -192,21 +191,21 @@ func selectSupportedServiceDiscoveryProtocolVersion(accept string) discovery.Ser
 	return maxVersion
 }
 
-func parseServiceDiscoveryProtocolVersion(versionString string) discovery.ServiceDiscoveryProtocolVersion {
+func parseServiceDiscoveryProtocolVersion(versionString string) protocol.ServiceDiscoveryProtocolVersion {
 	if strings.TrimSpace(versionString) == "application/vnd.restate.endpointmanifest.v1+json" {
-		return discovery.ServiceDiscoveryProtocolVersion_V1
+		return protocol.ServiceDiscoveryProtocolVersion_V1
 	}
 
-	return discovery.ServiceDiscoveryProtocolVersion_SERVICE_DISCOVERY_PROTOCOL_VERSION_UNSPECIFIED
+	return protocol.ServiceDiscoveryProtocolVersion_SERVICE_DISCOVERY_PROTOCOL_VERSION_UNSPECIFIED
 }
 
-func isServiceDiscoveryProtocolVersionSupported(version discovery.ServiceDiscoveryProtocolVersion) bool {
+func isServiceDiscoveryProtocolVersionSupported(version protocol.ServiceDiscoveryProtocolVersion) bool {
 	return version >= minServiceDiscoveryProtocolVersion && version <= maxServiceDiscoveryProtocolVersion
 }
 
-func serviceDiscoveryProtocolVersionToHeaderValue(serviceDiscoveryProtocolVersion discovery.ServiceDiscoveryProtocolVersion) string {
+func serviceDiscoveryProtocolVersionToHeaderValue(serviceDiscoveryProtocolVersion protocol.ServiceDiscoveryProtocolVersion) string {
 	switch serviceDiscoveryProtocolVersion {
-	case discovery.ServiceDiscoveryProtocolVersion_V1:
+	case protocol.ServiceDiscoveryProtocolVersion_V1:
 		return "application/vnd.restate.endpointmanifest.v1+json"
 	}
 	panic(fmt.Sprintf("unexpected service discovery protocol version %d", serviceDiscoveryProtocolVersion))

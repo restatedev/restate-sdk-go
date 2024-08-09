@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	restate "github.com/restatedev/sdk-go"
-	"github.com/restatedev/sdk-go/generated/proto/protocol"
+	protocol "github.com/restatedev/sdk-go/generated/dev/restate/service"
 	"github.com/restatedev/sdk-go/internal/futures"
 	"github.com/restatedev/sdk-go/internal/wire"
 )

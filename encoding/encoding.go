@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,6 +21,10 @@ var (
 	// ProtoCodec marshals proto.Message and unmarshals into proto.Message or pointers to types that implement proto.Message
 	// In handlers, it uses a content-type of application/proto
 	ProtoCodec PayloadCodec = protoCodec{}
+	// ProtoJSONCodec marshals proto.Message and unmarshals into proto.Message or pointers to types that implement proto.Message
+	// It uses the protojson package to marshal and unmarshal
+	// In handlers, it uses a content-type of application/json
+	ProtoJSONCodec PayloadCodec = protoJSONCodec{}
 	// JSONCodec marshals any json.Marshallable type and unmarshals into any json.Unmarshallable type
 	// In handlers, it uses a content-type of application/json
 	JSONCodec PayloadCodec = jsonCodec{}
@@ -188,23 +193,11 @@ func (p protoCodec) Unmarshal(data []byte, input any) (err error) {
 		// called with a *Message
 		return proto.Unmarshal(data, input)
 	default:
-		// we must support being called with a **Message where *Message is nil because this is the result of new(I) where I is a proto.Message
-		// and calling with new(I) is really the only generic approach.
-		value := reflect.ValueOf(input)
-		if value.Kind() != reflect.Pointer || value.IsNil() || value.Elem().Kind() != reflect.Pointer {
-			return fmt.Errorf("ProtoCodec.Unmarshal called with neither a proto.Message nor a non-nil pointer to a type that implements proto.Message.")
+		msg, err := allocateProtoMessage("ProtoCodec", input)
+		if err != nil {
+			return err
 		}
-		elem := value.Elem() // hopefully a *Message
-		if elem.IsNil() {
-			// allocate a &Message and swap this in
-			elem.Set(reflect.New(elem.Type().Elem()))
-		}
-		switch elemI := elem.Interface().(type) {
-		case proto.Message:
-			return proto.Unmarshal(data, elemI)
-		default:
-			return fmt.Errorf("ProtoCodec.Unmarshal called with neither a proto.Message nor a non-nil pointer to a type that implements proto.Message.")
-		}
+		return proto.Unmarshal(data, msg)
 	}
 }
 
@@ -214,5 +207,59 @@ func (p protoCodec) Marshal(output any) (data []byte, err error) {
 		return proto.Marshal(output)
 	default:
 		return nil, fmt.Errorf("ProtoCodec.Marshal called with a type that is not a proto.Message")
+	}
+}
+
+type protoJSONCodec struct{}
+
+func (j protoJSONCodec) InputPayload(_ any) *InputPayload {
+	return &InputPayload{Required: true, ContentType: proto.String("application/json")}
+}
+
+func (j protoJSONCodec) OutputPayload(_ any) *OutputPayload {
+	return &OutputPayload{ContentType: proto.String("application/json")}
+}
+
+func (j protoJSONCodec) Unmarshal(data []byte, input any) (err error) {
+	switch input := input.(type) {
+	case proto.Message:
+		// called with a *Message
+		return protojson.Unmarshal(data, input)
+	default:
+		msg, err := allocateProtoMessage("ProtoJSONCodec", input)
+		if err != nil {
+			return err
+		}
+		return protojson.Unmarshal(data, msg)
+	}
+}
+
+func (j protoJSONCodec) Marshal(output any) ([]byte, error) {
+	switch output := output.(type) {
+	case proto.Message:
+		return protojson.Marshal(output)
+	default:
+		return nil, fmt.Errorf("ProtoJSONCodec.Marshal called with a type that is not a proto.Message")
+	}
+}
+
+// we must support being called with a **Message where *Message is nil because this is the result of new(I) where I is a proto.Message
+// new(I) is really the only generic approach for allocating. Hitting this code path is meaningfully slower
+// for protobuf decoding, but the effect is minimal for protojson
+func allocateProtoMessage(codecName string, input any) (proto.Message, error) {
+	value := reflect.ValueOf(input)
+	if value.Kind() != reflect.Pointer || value.IsNil() || value.Elem().Kind() != reflect.Pointer {
+		return nil, fmt.Errorf("%s.Unmarshal called with neither a proto.Message nor a non-nil pointer to a type that implements proto.Message.", codecName)
+	}
+	elem := value.Elem() // hopefully a *Message
+	if elem.IsNil() {
+		// allocate a &Message and swap this in
+		elem.Set(reflect.New(elem.Type().Elem()))
+	}
+	switch elemI := elem.Interface().(type) {
+	case proto.Message:
+		return elemI, nil
+	default:
+		return nil, fmt.Errorf("%s.Unmarshal called with neither a proto.Message nor a non-nil pointer to a type that implements proto.Message.", codecName)
 	}
 }

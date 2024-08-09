@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2023-2024 - Restate Software, Inc., Restate GmbH
+ *
+ * This file is part of the Restate SDK for Go,
+ * which is released under the MIT license.
+ *
+ * You can find a copy of the license in file LICENSE in the root
+ * directory of this repository or package, or at
+ * https://github.com/restatedev/sdk-typescript/blob/main/LICENSE
+ */
+
+syntax = "proto3";
+
+package dev.restate.sdk.go;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/restatedev/sdk-go/generated/dev/restate/sdk";
+
+enum ServiceType {
+    // SERVICE is the default and need not be provided
+    SERVICE = 0;
+    VIRTUAL_OBJECT = 1;
+    WORKFLOW = 2;
+}
+
+enum HandlerType {
+    // Handler type is ignored for service type SERVICE.
+    // For VIRTUAL_OBJECT, defaults to EXCLUSIVE.
+    // For WORKFLOW, defaults to SHARED.
+    UNSET = 0;
+    EXCLUSIVE = 1;
+    SHARED = 2;
+    // Signifies that this is the primary function for the workflow, typically named 'Run'.
+    WORKFLOW_RUN = 3;
+}
+
+extend google.protobuf.MethodOptions {
+    HandlerType handler_type = 2051;
+}
+
+extend google.protobuf.ServiceOptions {
+    ServiceType service_type = 2051;
+}

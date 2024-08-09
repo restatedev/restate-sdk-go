@@ -14,10 +14,7 @@ func main() {
 		// Handlers can be inferred from object methods
 		Bind(restate.Object(&userSession{})).
 		Bind(restate.Object(&ticketService{})).
-		Bind(restate.Service(&checkout{})).
-		// Or created and registered explicitly
-		Bind(health).
-		Bind(bigCounter)
+		Bind(restate.Service(&checkout{}))
 
 	if err := server.Start(context.Background(), ":9080"); err != nil {
 		slog.Error("application exited unexpectedly", "err", err.Error())

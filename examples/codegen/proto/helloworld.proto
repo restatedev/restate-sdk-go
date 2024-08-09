@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option go_package = "github.com/restatedev/sdk-go/examples/codegen/proto";
+
+import "dev/restate/sdk/go.proto";
+
+package helloworld;
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloResponse) {}
+}
+
+service Counter {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+  rpc Add (AddRequest) returns (GetResponse) {}
+  rpc Get (GetRequest) returns (GetResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloResponse {
+  string message = 1;
+}
+
+message AddRequest {
+  int64 delta = 1;
+}
+
+message GetRequest {}
+
+message GetResponse {
+  int64 value = 1;
+}

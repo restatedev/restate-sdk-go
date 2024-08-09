@@ -3,7 +3,7 @@ package errors
 import (
 	"fmt"
 
-	"github.com/restatedev/sdk-go/generated/proto/protocol"
+	protocol "github.com/restatedev/sdk-go/generated/dev/restate/service"
 )
 
 type Code uint16

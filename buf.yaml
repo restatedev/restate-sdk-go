@@ -1,4 +1,9 @@
-version: v1
+version: v2
+modules:
+  - path: proto
+    name: buf.build/restatedev/sdk-go
+    excludes:
+      - proto/dev/restate/sdk/go
 breaking:
   use:
     - FILE

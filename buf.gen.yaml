@@ -1,9 +1,13 @@
-version: v1
+version: v2
 managed:
   enabled: true
-  go_package_prefix:
-    default: github.com/restatedev/sdk-go/generated
+  override:
+    - file_option: go_package_prefix
+      value: github.com/restatedev/sdk-go/generated
 plugins:
-  - plugin: go
+  - remote: buf.build/protocolbuffers/go:v1.34.2
     out: generated
     opt: paths=source_relative
+inputs:
+  - module: buf.build/restatedev/service-protocol
+  - directory: proto

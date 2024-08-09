@@ -1,0 +1,9 @@
+version: v2
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE
+deps:
+  - buf.build/restatedev/sdk-go

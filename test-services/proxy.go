@@ -12,15 +12,15 @@ type ProxyRequest struct {
 	Message []int `json:"message"`
 }
 
-func (req *ProxyRequest) ToTarget(ctx restate.Context) restate.TypedCallClient[[]byte] {
+func (req *ProxyRequest) ToTarget(ctx restate.Context) restate.TypedCallClient[[]byte, []byte] {
 	if req.VirtualObjectKey != nil {
-		return restate.CallAs[[]byte](ctx.Object(
+		return restate.NewTypedCallClient[[]byte, []byte](ctx.Object(
 			req.ServiceName,
 			*req.VirtualObjectKey,
 			req.HandlerName,
 			restate.WithBinary))
 	} else {
-		return restate.CallAs[[]byte](ctx.Service(
+		return restate.NewTypedCallClient[[]byte, []byte](ctx.Service(
 			req.ServiceName,
 			req.HandlerName,
 			restate.WithBinary))

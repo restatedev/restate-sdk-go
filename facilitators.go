@@ -1,6 +1,8 @@
 package restate
 
 import (
+	"time"
+
 	"github.com/restatedev/sdk-go/internal/options"
 )
 
@@ -46,21 +48,29 @@ func AwakeableAs[T any](ctx Context, options ...options.AwakeableOption) TypedAw
 	return typedAwakeable[T]{ctx.Awakeable(options...)}
 }
 
-// TypedCallClient is an extension of [CallClient] which returns typed responses instead of accepting a pointer
-type TypedCallClient[O any] interface {
+// TypedCallClient is an extension of [CallClient] which deals in typed values
+type TypedCallClient[I any, O any] interface {
 	// RequestFuture makes a call and returns a handle on a future response
-	RequestFuture(input any) (TypedResponseFuture[O], error)
+	RequestFuture(input I) (TypedResponseFuture[O], error)
 	// Request makes a call and blocks on getting the response
-	Request(input any) (O, error)
-	SendClient
+	Request(input I) (O, error)
+	// Send makes a one-way call which is executed in the background
+	Send(input I, delay time.Duration) error
 }
 
-type typedCallClient[O any] struct {
-	CallClient
+type typedCallClient[I any, O any] struct {
+	inner CallClient
 }
 
-func (t typedCallClient[O]) Request(input any) (output O, err error) {
-	fut, err := t.CallClient.RequestFuture(input)
+// NewTypedCallClient is primarily intended to be called from generated code, to provide
+// type safety of input types. In other contexts it's generally less cumbersome to use [CallAs],
+// as the output type can be inferred.
+func NewTypedCallClient[I any, O any](client CallClient) TypedCallClient[I, O] {
+	return typedCallClient[I, O]{client}
+}
+
+func (t typedCallClient[I, O]) Request(input I) (output O, err error) {
+	fut, err := t.inner.RequestFuture(input)
 	if err != nil {
 		return output, err
 	}
@@ -68,12 +78,16 @@ func (t typedCallClient[O]) Request(input any) (output O, err error) {
 	return
 }
 
-func (t typedCallClient[O]) RequestFuture(input any) (TypedResponseFuture[O], error) {
-	fut, err := t.CallClient.RequestFuture(input)
+func (t typedCallClient[I, O]) RequestFuture(input I) (TypedResponseFuture[O], error) {
+	fut, err := t.inner.RequestFuture(input)
 	if err != nil {
 		return nil, err
 	}
 	return typedResponseFuture[O]{fut}, nil
+}
+
+func (t typedCallClient[I, O]) Send(input I, delay time.Duration) error {
+	return t.inner.Send(input, delay)
 }
 
 // TypedResponseFuture is an extension of [ResponseFuture] which returns typed responses instead of accepting a pointer
@@ -95,6 +109,6 @@ func (t typedResponseFuture[O]) Response() (output O, err error) {
 }
 
 // CallAs helper function to get typed responses from a [CallClient] instead of passing in a pointer
-func CallAs[O any](client CallClient) TypedCallClient[O] {
-	return typedCallClient[O]{client}
+func CallAs[O any](client CallClient) TypedCallClient[any, O] {
+	return typedCallClient[any, O]{client}
 }

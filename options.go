@@ -5,6 +5,11 @@ import (
 	"github.com/restatedev/sdk-go/internal/options"
 )
 
+// re-export for use in generated code
+type CallOption = options.CallOption
+type ServiceOption = options.ServiceOption
+type ObjectOption = options.ObjectOption
+
 type withCodec struct {
 	codec encoding.Codec
 }
@@ -67,6 +72,9 @@ func WithPayloadCodec(codec encoding.PayloadCodec) withPayloadCodec {
 
 // WithProto is an option to specify the use of [encoding.ProtoCodec] for (de)serialisation
 var WithProto = WithPayloadCodec(encoding.ProtoCodec)
+
+// WithProtoJSON is an option to specify the use of [encoding.ProtoJSONCodec] for (de)serialisation
+var WithProtoJSON = WithPayloadCodec(encoding.ProtoJSONCodec)
 
 // WithBinary is an option to specify the use of [encoding.BinaryCodec] for (de)serialisation
 var WithBinary = WithPayloadCodec(encoding.BinaryCodec)

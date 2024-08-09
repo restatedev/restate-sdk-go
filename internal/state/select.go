@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	restate "github.com/restatedev/sdk-go"
-	_go "github.com/restatedev/sdk-go/generated/proto/go"
+	_go "github.com/restatedev/sdk-go/generated/dev/restate/sdk/go"
 	"github.com/restatedev/sdk-go/internal/futures"
 	"github.com/restatedev/sdk-go/internal/wire"
 )

@@ -84,11 +84,6 @@ type CallClient interface {
 	RequestFuture(input any) (ResponseFuture, error)
 	// Request makes a call and blocks on getting the response which is stored in output
 	Request(input any, output any) error
-	SendClient
-}
-
-// SendClient allows for one-way invocations to a particular service/key/method tuple.
-type SendClient interface {
 	// Send makes a one-way call which is executed in the background
 	Send(input any, delay time.Duration) error
 }

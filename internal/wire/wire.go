@@ -11,8 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	_go "github.com/restatedev/sdk-go/generated/proto/go"
-	protocol "github.com/restatedev/sdk-go/generated/proto/protocol"
+	_go "github.com/restatedev/sdk-go/generated/dev/restate/sdk/go"
+	protocol "github.com/restatedev/sdk-go/generated/dev/restate/service"
 	"google.golang.org/protobuf/proto"
 )
 

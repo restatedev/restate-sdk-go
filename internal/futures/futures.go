@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/restatedev/sdk-go/generated/proto/protocol"
+	protocol "github.com/restatedev/sdk-go/generated/dev/restate/service"
 	"github.com/restatedev/sdk-go/internal/errors"
 	"github.com/restatedev/sdk-go/internal/wire"
 )
