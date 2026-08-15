@@ -110,10 +110,20 @@ func (restateCtx *ctx) pollProgress(handles []uint32) bool {
 			select {
 			case readRes, ok := <-restateCtx.readChan:
 				if !ok {
-					// Got EOF, notify and break
+					// readInputLoop is the only sender on readChan and closes it when the
+					// input stream hits EOF, so input is closed for the rest of the
+					// invocation. Notify the core, then set readChan to nil to disable this
+					// case arm: a closed channel is permanently ready to receive, so leaving
+					// it armed makes this select spin the enclosing loop instead of waiting.
+					// Receiving from a nil channel blocks forever, which leaves a run
+					// completion and context cancellation as the only wakeups. Those suffice
+					// because the core reports DoProgressWaitingExternalProgress only while
+					// something external is still pending; with input closed and nothing
+					// pending it suspends.
 					if err = restateCtx.stateMachine.NotifyInputClosed(restateCtx); err != nil {
 						panic(err)
 					}
+					restateCtx.readChan = nil
 					break
 				}
 				if err = restateCtx.stateMachine.NotifyInput(restateCtx, readRes.buf[0:readRes.nRead]); err != nil {

@@ -88,7 +88,11 @@ type ctx struct {
 	// because the handler makes sure to drain
 	// and close the request stream at the end
 	// before the requestHandler returns.
-	stream   io.ReadWriter
+	stream io.ReadWriter
+
+	// readChan carries input read by readInputLoop, which is its only sender and
+	// closes it on EOF. pollProgress then sets it to nil, so a nil readChan means
+	// input is closed and no further input can arrive.
 	readChan chan readResult
 
 	stateMachine *statemachine.StateMachine
